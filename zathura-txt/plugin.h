@@ -10,6 +10,7 @@
 
 #include <zathura/plugin-api.h>
 
+
 typedef struct txt_document_s txt_document_t;
 typedef struct txt_page_s txt_page_t;
 

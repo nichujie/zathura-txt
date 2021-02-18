@@ -11,6 +11,8 @@ cairo
 
 To build and install the plugin:
 
+To support Chinese, it is necessary to set `font_face` to Chinese font in [config.h](zathura-txt/config.h)
+
 ```bash
 cd zathura-txt
 meson build

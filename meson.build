@@ -50,6 +50,7 @@ sources = files(
   'zathura-txt/document.c',
   'zathura-txt/page.c',
   'zathura-txt/plugin.c',
+  'zathura-txt/render.c'
 )
 
 txt = shared_module('txt',

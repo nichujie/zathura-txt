@@ -49,7 +49,6 @@ txt_document_open(zathura_document_t *document)
   cairo_set_font_size(cr, DEF_FONT_SIZE);
   cairo_text_extents_t ctet;
 
-  wchar_t *word;
   wchar_t c[128];
   char **lines = malloc(4 * 64);
   memset(c, '\0', sizeof(c));
@@ -59,61 +58,55 @@ txt_document_open(zathura_document_t *document)
   int char_index = 0, page_index = 0, line_index = 0;
   int left = 40, top = 40;
   int total_line_height = 0;
-  
+
   while ((*(c + char_index) = fgetwc(fp)) != WEOF)
   {
-    
+
     char tmp[sizeof(c) + 1];
     memset(tmp, '\0', sizeof(c) + 1);
     wcstombs(tmp, c, sizeof(wchar_t) * wcslen(c));
-  
+
     cairo_text_extents(cr, tmp, &ctet);
     if (ctet.width > PAGE_WIDTH - 2 * left || *(c + char_index) == '\n')
     {
-      g_printf("%s|",tmp);
+      // g_printf("%s|", tmp);
       lines[line_index] = strdup(tmp);
-      
-      
+
       memset(c, '\0', sizeof(c));
       char_index = 0;
-      
+      line_index++;
       if (total_line_height + ctet.height + LINE_SPACING < PAGE_HEIGHT - 2 * top)
       {
-        total_line_height += (ctet.height +LINE_SPACING);
+        total_line_height += (ctet.height + LINE_SPACING);
       }
       else
       {
         // 换行并换页
-        g_printf("<NEXT PAGE>\n");
+        // g_printf("<NEXT PAGE>\n");
         txt_document->pages[page_index].line_count = line_index;
         txt_document->pages[page_index].lines = new_page(line_index + 1);
-        memcpy(txt_document->pages[page_index].lines,lines,(line_index + 1) * sizeof(char *));
-        
-    
+        memcpy(txt_document->pages[page_index].lines, lines, line_index * sizeof(char *));
+        memset(lines, NULL, sizeof(lines));
+
         total_line_height = 0;
         line_index = 0;
         page_index++;
-       
+
         txt_document->pages = realloc(txt_document->pages, (page_index + 1) * sizeof(txt_page_t));
       }
-      line_index++;
-
     }
     else
     {
       char_index++;
     }
   }
-  
+
   txt_document->pages[page_index].line_count = line_index;
   txt_document->pages[page_index].lines = new_page(line_index + 1);
-  memcpy(txt_document->pages[page_index].lines,lines,(line_index + 1) * sizeof(char *));
-  
-
-
+  memcpy(txt_document->pages[page_index].lines, lines, line_index  * sizeof(char *));
 
   /* set document information */
-  zathura_document_set_number_of_pages(document, page_index+1);
+  zathura_document_set_number_of_pages(document, page_index + 1);
   zathura_document_set_data(document, txt_document);
 
   fclose(fp);

@@ -1,12 +1,8 @@
 
 #include "plugin.h"
 #include "internal.h"
+#include "config.h"
 
-#include <stdlib.h>
-#include <stdio.h>
-#include <glib.h>
-#include <gtk/gtk.h>
-#include <glib/gstdio.h>
 zathura_error_t
 txt_page_render_cairo(zathura_page_t* page, void* data,
     cairo_t* cairo, bool UNUSED(printing))
@@ -23,11 +19,11 @@ txt_page_render_cairo(zathura_page_t* page, void* data,
  
   cairo_set_source_rgb(cairo, 0.1, 0.1, 0.1);
  
-  cairo_select_font_face(cairo,DEF_FONT_FACE,
+  cairo_select_font_face(cairo,font_face,
       CAIRO_FONT_SLANT_NORMAL,
       CAIRO_FONT_WEIGHT_BOLD);
  
-  cairo_set_font_size(cairo, DEF_FONT_SIZE);
+  cairo_set_font_size(cairo, font_size);
   cairo_text_extents_t ctet;
   int left = 40;
   int top = 40;
@@ -37,7 +33,7 @@ txt_page_render_cairo(zathura_page_t* page, void* data,
     cairo_move_to(cairo, left, top);
     cairo_show_text(cairo, txt_page->lines[i]); 
     cairo_text_extents(cairo,txt_page->lines[i],&ctet);
-    top += (LINE_SPACING + ctet.height);
+    top += (line_spacing + ctet.height);
   }
  
   return ZATHURA_ERROR_OK;

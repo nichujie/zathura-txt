@@ -11,6 +11,7 @@
 
 #include "plugin.h"
 #include "internal.h"
+#include "config.h"
 
 static char **new_page(int size);
 
@@ -43,10 +44,10 @@ txt_document_open(zathura_document_t *document)
 
   // Create a cairo to measure font width
   cairo_t *cr = cairo_create(cairo_image_surface_create(CAIRO_FORMAT_A1, 1, 1));
-  cairo_select_font_face(cr, DEF_FONT_FACE,
+  cairo_select_font_face(cr, font_face,
                          CAIRO_FONT_SLANT_NORMAL,
                          CAIRO_FONT_WEIGHT_BOLD);
-  cairo_set_font_size(cr, DEF_FONT_SIZE);
+  cairo_set_font_size(cr, font_size);
   cairo_text_extents_t ctet;
 
   wchar_t c[128];
@@ -67,7 +68,7 @@ txt_document_open(zathura_document_t *document)
     wcstombs(tmp, c, sizeof(wchar_t) * wcslen(c));
 
     cairo_text_extents(cr, tmp, &ctet);
-    if (ctet.width > PAGE_WIDTH - 2 * left || *(c + char_index) == '\n')
+    if (ctet.width > page_width - 2 * left || *(c + char_index) == '\n')
     {
       // g_printf("%s|", tmp);
       lines[line_index] = strdup(tmp);
@@ -75,9 +76,11 @@ txt_document_open(zathura_document_t *document)
       memset(c, '\0', sizeof(c));
       char_index = 0;
       line_index++;
-      if (total_line_height + ctet.height + LINE_SPACING < PAGE_HEIGHT - 2 * top)
+      if (total_line_height + ctet.height + line_spacing < page_height - 2 * top)
       {
-        total_line_height += (ctet.height + LINE_SPACING);
+                
+
+        total_line_height += ctet.height + line_spacing;
       }
       else
       {

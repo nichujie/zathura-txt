@@ -7,6 +7,7 @@
 
 #include "plugin.h"
 #include "internal.h"
+#include "config.h"
 
 zathura_error_t
 txt_page_init(zathura_page_t* page)
@@ -23,8 +24,8 @@ txt_page_init(zathura_page_t* page)
   }
 
   // Defined in [[plugin.h]]
-  zathura_page_set_width(page, PAGE_WIDTH);
-  zathura_page_set_height(page, PAGE_HEIGHT);
+  zathura_page_set_width(page, page_width);
+  zathura_page_set_height(page, page_height);
   zathura_page_set_data(page, &txt_document->pages[zathura_page_get_index(page)]);
 
   return ZATHURA_ERROR_OK;

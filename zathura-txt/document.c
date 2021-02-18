@@ -7,6 +7,7 @@
 #include <gtk/gtk.h>
 #include <glib/gstdio.h>
 #include <girara/datastructures.h>
+#include <wchar.h>
 
 #include "plugin.h"
 #include "internal.h"
@@ -42,11 +43,14 @@ txt_document_open(zathura_document_t* document)
 
   if (txt_document->pages == NULL) goto error_free;
 
-  char line[MAX_CHARS_PER_LINE + 1];
+  wchar_t line[MAX_CHARS_PER_LINE + 1];
   int page_count = 0;
 
-  while(fgets(line, MAX_CHARS_PER_LINE, fp)) {
-    txt_document->pages[page_count].lines[txt_document->pages[page_count].line_count] = strdup(line);
+  while(fgetws(line, MAX_CHARS_PER_LINE, fp)) {
+    char tmp[sizeof(line)+1];
+    memset(tmp,'\n',sizeof(line)+1);
+    wcstombs(tmp,line,MAX_CHARS_PER_LINE);
+    txt_document->pages[page_count].lines[txt_document->pages[page_count].line_count] = strdup(tmp);
     txt_document->pages[page_count].line_count++;
 
     if (txt_document->pages[page_count].line_count >= MAX_LINES_PER_PAGE) { 
@@ -119,7 +123,7 @@ txt_page_render_cairo(zathura_page_t* page, void* data,
  
   cairo_set_source_rgb(cairo, 0.1, 0.1, 0.1);
  
-  cairo_select_font_face(cairo,"Times New Roman",
+  cairo_select_font_face(cairo,"WenQuanYi Zen Hei Mono",
       CAIRO_FONT_SLANT_NORMAL,
       CAIRO_FONT_WEIGHT_BOLD);
  
@@ -131,6 +135,7 @@ txt_page_render_cairo(zathura_page_t* page, void* data,
   for (int i = 0; i < txt_page->line_count; i++) {
     cairo_move_to(cairo, left, top);
     cairo_show_text(cairo, txt_page->lines[i]); 
+    //g_print(txt_page->lines[i]);
     top += 20;
   }
  

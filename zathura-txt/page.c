@@ -22,9 +22,9 @@ txt_page_init(zathura_page_t* page)
     return ZATHURA_ERROR_UNKNOWN;
   }
 
-  // Size of an A4 page
-  zathura_page_set_width(page, 650);
-  zathura_page_set_height(page, 978);
+  // Defined in [[plugin.h]]
+  zathura_page_set_width(page, PAGE_WIDTH);
+  zathura_page_set_height(page, PAGE_HEIGHT);
   zathura_page_set_data(page, &txt_document->pages[zathura_page_get_index(page)]);
 
   return ZATHURA_ERROR_OK;

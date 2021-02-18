@@ -10,6 +10,15 @@
 
 #include <zathura/plugin-api.h>
 
+// Size of an A4 page
+#define PAGE_WIDTH 650
+#define PAGE_HEIGHT 978
+
+//TODO Temp def
+#define DEF_FONT_FACE "WenQuanYi Zen Hei Mono"
+#define DEF_FONT_SIZE 13
+#define LINE_SPACING 5
+
 typedef struct txt_document_s txt_document_t;
 typedef struct txt_page_s txt_page_t;
 

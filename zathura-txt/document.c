@@ -12,57 +12,108 @@
 #include "plugin.h"
 #include "internal.h"
 
-#define MAX_LINES_PER_PAGE 46
-#define MAX_CHARS_PER_LINE 84
-
-static char** new_page();
+static char **new_page(int size);
 
 zathura_error_t
-txt_document_open(zathura_document_t* document)
+txt_document_open(zathura_document_t *document)
 {
-  if (document == NULL) {
+  if (document == NULL)
+  {
     return ZATHURA_ERROR_INVALID_ARGUMENTS;
   }
 
-  txt_document_t* txt_document = g_malloc0(sizeof(txt_document_t));
+  txt_document_t *txt_document = g_malloc0(sizeof(txt_document_t));
 
   /* file path */
-  const char* path = zathura_document_get_path(document);
+  const char *path = zathura_document_get_path(document);
 
-  g_printf("Welcome to use NCJ's zathura txt plugin\n!");
+  g_printf("Welcome to use NCJ's zathura txt plugin!\n");
 
-  FILE* fp = fopen(path, "r");
+  FILE *fp = fopen(path, "r");
 
-  if (fp == NULL) {
+  if (fp == NULL)
+  {
     goto error_free;
   }
 
   txt_document->pages = calloc(1, sizeof(txt_page_t));
-  txt_document->pages[0].lines = new_page();
-  txt_document->pages[0].line_count = 0;
 
-  if (txt_document->pages == NULL) goto error_free;
+  if (txt_document->pages == NULL)
+    goto error_free;
 
-  wchar_t line[MAX_CHARS_PER_LINE + 1];
-  int page_count = 0;
+  // Create a cairo to measure font width
+  cairo_t *cr = cairo_create(cairo_image_surface_create(CAIRO_FORMAT_A1, 1, 1));
+  cairo_select_font_face(cr, DEF_FONT_FACE,
+                         CAIRO_FONT_SLANT_NORMAL,
+                         CAIRO_FONT_WEIGHT_BOLD);
+  cairo_set_font_size(cr, DEF_FONT_SIZE);
+  cairo_text_extents_t ctet;
 
-  while(fgetws(line, MAX_CHARS_PER_LINE, fp)) {
-    char tmp[sizeof(line)+1];
-    memset(tmp,'\n',sizeof(line)+1);
-    wcstombs(tmp,line,MAX_CHARS_PER_LINE);
-    txt_document->pages[page_count].lines[txt_document->pages[page_count].line_count] = strdup(tmp);
-    txt_document->pages[page_count].line_count++;
+  wchar_t *word;
+  wchar_t c[128];
+  char **lines = malloc(4 * 64);
+  memset(c, '\0', sizeof(c));
 
-    if (txt_document->pages[page_count].line_count >= MAX_LINES_PER_PAGE) { 
-      page_count++; 
-      txt_document->pages = realloc(txt_document->pages, (page_count + 1) * sizeof(txt_page_t));
-      txt_document->pages[page_count].lines = new_page();
-      txt_document->pages[page_count].line_count = 0;
+  txt_document->pages = calloc(1, sizeof(txt_page_t));
+
+  int char_index = 0, page_index = 0, line_index = 0;
+  int left = 40, top = 40;
+  int total_line_height = 0;
+  
+  while ((*(c + char_index) = fgetwc(fp)) != WEOF)
+  {
+    
+    char tmp[sizeof(c) + 1];
+    memset(tmp, '\0', sizeof(c) + 1);
+    wcstombs(tmp, c, sizeof(wchar_t) * wcslen(c));
+  
+    cairo_text_extents(cr, tmp, &ctet);
+    if (ctet.width > PAGE_WIDTH - 2 * left || *(c + char_index) == '\n')
+    {
+      g_printf("%s|",tmp);
+      lines[line_index] = strdup(tmp);
+      
+      
+      memset(c, '\0', sizeof(c));
+      char_index = 0;
+      
+      if (total_line_height + ctet.height + LINE_SPACING < PAGE_HEIGHT - 2 * top)
+      {
+        total_line_height += (ctet.height +LINE_SPACING);
+      }
+      else
+      {
+        // 换行并换页
+        g_printf("<NEXT PAGE>\n");
+        txt_document->pages[page_index].line_count = line_index;
+        txt_document->pages[page_index].lines = new_page(line_index + 1);
+        memcpy(txt_document->pages[page_index].lines,lines,(line_index + 1) * sizeof(char *));
+        
+    
+        total_line_height = 0;
+        line_index = 0;
+        page_index++;
+       
+        txt_document->pages = realloc(txt_document->pages, (page_index + 1) * sizeof(txt_page_t));
+      }
+      line_index++;
+
+    }
+    else
+    {
+      char_index++;
     }
   }
+  
+  txt_document->pages[page_index].line_count = line_index;
+  txt_document->pages[page_index].lines = new_page(line_index + 1);
+  memcpy(txt_document->pages[page_index].lines,lines,(line_index + 1) * sizeof(char *));
+  
+
+
 
   /* set document information */
-  zathura_document_set_number_of_pages(document, page_count + 1);
+  zathura_document_set_number_of_pages(document, page_index+1);
   zathura_document_set_data(document, txt_document);
 
   fclose(fp);
@@ -77,15 +128,17 @@ error_free:
 }
 
 zathura_error_t
-txt_document_free(zathura_document_t* UNUSED(document), void* data)
+txt_document_free(zathura_document_t *UNUSED(document), void *data)
 {
-  txt_document_t* txt_document = data;
-  if (txt_document == NULL) {
+  txt_document_t *txt_document = data;
+  if (txt_document == NULL)
+  {
     return ZATHURA_ERROR_INVALID_ARGUMENTS;
   }
 
   /* remove page list */
-  if (txt_document->pages != NULL) {
+  if (txt_document->pages != NULL)
+  {
     free(txt_document->pages);
   }
 
@@ -94,51 +147,15 @@ txt_document_free(zathura_document_t* UNUSED(document), void* data)
   return ZATHURA_ERROR_OK;
 }
 
-static char** 
-new_page() 
+static char **
+new_page(int size)
 {
-  char **page = calloc(MAX_LINES_PER_PAGE, sizeof(char*));
+  char **page = calloc(size, sizeof(char *));
 
-  if (page == NULL) {
+  if (page == NULL)
+  {
     return NULL;
   }
 
   return page;
 }
-
-
-zathura_error_t
-txt_page_render_cairo(zathura_page_t* page, void* data,
-    cairo_t* cairo, bool UNUSED(printing))
-{
-  txt_page_t* txt_page = (txt_page_t*)data;
-  if (page == NULL || txt_page == NULL || cairo == NULL) {
-    return ZATHURA_ERROR_INVALID_ARGUMENTS;
-  }
-  
-  zathura_document_t* document = zathura_page_get_document(page);
-  if (document == NULL) {
-    return ZATHURA_ERROR_UNKNOWN;
-  }
- 
-  cairo_set_source_rgb(cairo, 0.1, 0.1, 0.1);
- 
-  cairo_select_font_face(cairo,"WenQuanYi Zen Hei Mono",
-      CAIRO_FONT_SLANT_NORMAL,
-      CAIRO_FONT_WEIGHT_BOLD);
- 
-  cairo_set_font_size(cairo, 13);
- 
-  int left = 40;
-  int top = 40;
-
-  for (int i = 0; i < txt_page->line_count; i++) {
-    cairo_move_to(cairo, left, top);
-    cairo_show_text(cairo, txt_page->lines[i]); 
-    //g_print(txt_page->lines[i]);
-    top += 20;
-  }
- 
-  return ZATHURA_ERROR_OK;
-}
-
